@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<!-- saved from url=(0038)http://35.224.75.143:7777/compare.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+        <script src="./compare_files/jquery.min.js"></script><script data-dapp-detection="">
+(function() {
+  let alreadyInsertedMetaTag = false
+
+  function __insertDappDetected() {
+    if (!alreadyInsertedMetaTag) {
+      const meta = document.createElement('meta')
+      meta.name = 'dapp-detected'
+      document.head.appendChild(meta)
+      alreadyInsertedMetaTag = true
+    }
+  }
+
+  if (window.hasOwnProperty('web3')) {
+    // Note a closure can't be used for this var because some sites like
+    // www.wnyc.org do a second script execution via eval for some reason.
+    window.__disableDappDetectionInsertion = true
+    // Likely oldWeb3 is undefined and it has a property only because
+    // we defined it. Some sites like wnyc.org are evaling all scripts
+    // that exist again, so this is protection against multiple calls.
+    if (window.web3 === undefined) {
+      return
+    }
+    __insertDappDetected()
+  } else {
+    var oldWeb3 = window.web3
+    Object.defineProperty(window, 'web3', {
+      configurable: true,
+      set: function (val) {
+        if (!window.__disableDappDetectionInsertion)
+          __insertDappDetected()
+        oldWeb3 = val
+      },
+      get: function () {
+        if (!window.__disableDappDetectionInsertion)
+          __insertDappDetected()
+        return oldWeb3
+      }
+    })
+  }
+})()</script>
+        <style>
+            html {
+                background-color: #FAFAFA;
+            }
+
+            table {
+                border: 1px solid black;
+            }
+
+            td {
+                border: 1px solid black;
+            }
+
+
+            .noborder {
+                border: none;
+            }
+            .dropdown {
+                font-size: 20px;
+            }
+            .select-header{
+                color: #2CA4B0;
+                font-size: 20px;
+            }
+
+            .equal-width td {
+                width: 50%;
+                }
+
+            .title1 {
+                 color: #2CA4B0; font-family: 'Oleo Script', cursive; font-size: 24px; font-weight: normal; line-height: 32px; margin: 0 0 18px; text-shadow: 1px 0 0 #fff; text-transform: uppercase;
+            }
+            .title
+            { color: #111; font-family: 'Open Sans Condensed', sans-serif; font-size: 24px; font-weight: 700; text-align: center;  }
+
+            .search {
+                padding:8px 15px;
+                background:rgba(50, 50, 50, 0.2);
+                border:0px solid #dbdbdb;
+                font-size: 20px;
+                width: 45%;
+            }
+            .button {
+                position:relative;
+                padding:6px 15px;
+                left:-8px;
+                border:2px solid #207cca;
+                background-color:#207cca;
+                color:#fafafa;
+                font-size: 20px;
+
+            }
+            .button:hover  {
+                background-color:#fafafa;
+                color:#207cca;
+            }
+            .pretty-table { border-collapse: collapse; }
+            .pretty-table th, .pretty-table td { padding: 0.5em; font-size: 24px;}
+            .pretty-table th, .pretty-table td { color: #632a39; }
+            .pretty-table th { color: #000; background-color: #8fadcc; }
+            .pretty-table th { color: #fff; background-color: #7d98b3; }
+
+        </style>
+    </head>
+
+    <body>
+        <script>
+            function makeRequest() {
+                var response;
+                var text = document.getElementById("searchBox").value;
+                var a = {"query": {"multi_match": {"query": text, "fields": ["title", "overview"]}}};
+                var b = {"query": {"query": {"rescore_query": {"sltr": {"params": {"keywords": text},"model": model}}}}}
+                // var b = {"query":{"multi_match":{"query":text,"fields":["title","overview"]}},"rescore":{"query":{"rescore_query":{"sltr":{"params":{"keywords":text},"model":model}}}}}
+                var data = a;
+                var r = $.ajax({
+                    url: "http://35.224.75.143:9200/tmdb07/_search?_source=title,id,overview",
+                    crossDomain: true,
+                    type: "POST",
+                    data: JSON.stringify(data),
+                    beforeSend: function(xhr) {
+                        xhr.setRequestHeader('X-Requested-With', {
+                            toString: function() {
+                                return '';
+                            }
+                        });
+                        xhr.setRequestHeader('Content-Type', {
+                            toString: function() {
+                                return 'application/json';
+                            }
+                        });
+                    },
+                    async: false,
+                    success: function(data){
+                        response = data["hits"]["hits"];
+                    }
+                });
+                try {
+                    for (var i =0; i < 10; i++) {
+                        var movie = response[i];
+                        document.getElementById(String(i)).childNodes[1].childNodes[0].innerText = movie["_source"]["title"];
+                        document.getElementById(String(i)).childNodes[1].childNodes[2].innerText = movie["_source"]["overview"];
+                    }
+                }
+                catch (e) {
+                    console.log("No results found.")
+                }
+                var model = document.getElementById("apiOptions").value;
+                if (model !== "Default") {
+                    model = "model_" + model;
+                    data["rescore"] = {"query": {"rescore_query": {"sltr": {"params": {"keywords": text},"model": model}}}}
+                    // data["rescore"] = {"query": {"rescore_query": {"sltr": {"params": {"keywords": "gandhi"},"model": model}}}}
+                    // data["rescore"] = {"query":{"multi_match":{"query":text,"fields":["title","overview"]}},"rescore":{"query":{"rescore_query":{"sltr":{"params":{"keywords":text},"model":model}}}}}
+                    var r = $.ajax({
+                        url: "http://35.224.75.143:9200/tmdb07/_search?_source=title,id,overview",
+                        crossDomain: true,
+                        type: "POST",
+                        data: JSON.stringify(data),
+                        beforeSend: function(xhr) {
+                            xhr.setRequestHeader('X-Requested-With', {
+                                toString: function() {
+                                    return '';
+                                }
+                            });
+                            xhr.setRequestHeader('Content-Type', {
+                                toString: function() {
+                                    return 'application/json';
+                                }
+                            });
+                        },
+                        async: false,
+                        success: function(data){
+                            response = data["hits"]["hits"];
+                        }
+                    });
+                    try {
+                        for (var i =0; i < 10; i++) {
+                            var movie = response[i];
+                            document.getElementById(String(i)).childNodes[3].childNodes[0].innerText = movie["_source"]["title"];
+                            document.getElementById(String(i)).childNodes[3].childNodes[2].innerText = movie["_source"]["overview"];
+                        }
+                    }
+                    catch (e) {
+                        console.log("No results found.")
+                    }
+                }
+            }
+        </script>
+        <h1>Learning to Rank - Comparison with/without the learning model</h1>
+
+            <form>
+                <input id="searchBox" class="search" type="text" onkeyup="makeRequest()">
+                <input type="button" class="button" value="Search">
+                <br><br>
+                <font class="select-header">
+                Apply Learning Model </font>
+                <select id="apiOptions" class="dropdown" onchange="makeRequest()">
+                    <option value="Default">Default</option>
+                    <option value="MART">MART</option>
+                    <option value="RankNet">RankNet</option>
+                    <option value="LambdaMART">LambdaMART</option>
+                    <option value="TFRanking">TFRanking</option>
+                </select>
+
+            </form>
+            <div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><div class="title"></div><br><div class="overview"></div><table class="equal-width pretty-table">
+                <thead>
+                <tr>
+                    <th>ORGANIC RESULTS</th>
+                    <th>MODEL DRIVEN RESULTS</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="0">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="1">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="2">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="3">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="4">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="5">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="6">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="7">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="8">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+                <tr id="9">
+                    <td id="dn"><div class="title"></div><br><div class="overview"></div></td>
+
+                    
+                    <td id="nn"><div class="title"></div><br><div class="overview"></div></td>
+                </tr>
+            </tbody>
+        </table>
+    
+
+
+</body></html>
